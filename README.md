@@ -16,3 +16,4 @@ user: >more
 bot: NCIS: Los Angeles [7x2] (21:59), Castle [8x2] (22:00), Blindspot [1x2] (22:00), Señora Acero [2x5] (22:00)
 ```
 
+The `schedule` command defaults to all US tvshows of the type "Scripted" (it will ignore Documentary, Reality etc. type of shows) 
