@@ -50,11 +50,16 @@ class tvmaze(callbacks.Plugin):
         show = fetch(tvshow)
 
         if show:
+            if show['premiered']:
+                premiered = show['premiered']
+            else:
+                premiered = "SOON"
+
             show_state = format('%s %s (%s).',
                     ircutils.bold(ircutils.underline(show['name'])),
-                    show['premiered'][:4], show['status'])
+                    premiered[:4], show['status'])
             
-            if 'previousepisode' in show['_embedded']:
+            if ( '_embedded' in show and 'previousepisode' in show['_embedded']):
                 airtime = parse(show['_embedded']['previousepisode']['airstamp'])
                 timedelta = datetime.datetime.now(tzlocal()) - airtime
                 relative_time = format_timedelta(timedelta,
@@ -70,7 +75,7 @@ class tvmaze(callbacks.Plugin):
             else:
                 last_episode = ''
 
-            if 'nextepisode' in show['_embedded']:
+            if ('_embedded' in show and 'nextepisode' in show['_embedded']):
                 airtime = parse(show['_embedded']['nextepisode']['airstamp'])
                 timedelta = datetime.datetime.now(tzlocal()) - airtime
                 relative_time = format_timedelta(timedelta, granularity='minutes')
