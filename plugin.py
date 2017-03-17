@@ -44,7 +44,7 @@ class tvmaze(callbacks.Plugin):
             for (stuff, arg) in opts:
                 if stuff == 'd':
                     details = True
-                elif stuff == 'details':
+                elif stuff == 'detail':
                     details = True
 
         show = fetch(tvshow)
