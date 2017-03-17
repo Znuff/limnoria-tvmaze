@@ -99,13 +99,21 @@ class tvmaze(callbacks.Plugin):
             irc.reply(format('No show found named "%s"', ircutils.bold(tvshow)))
 
         if details:
-            show_network = format('%s',
+            if show['network']:
+                show_network = format('%s',
                     ircutils.bold(show['network']['name']))
 
-            show_schedule = format('%s: %s @ %s',
+                show_schedule = format('%s: %s @ %s',
                     ircutils.underline('Schedule'),
                     ircutils.bold(', '.join(show['schedule']['days'])),
                     ircutils.bold(show['schedule']['time']))
+            else:
+                show_network = format('%s',
+                    ircutils.bold(show['webChannel']['name']))
+
+                show_schedule = format('%s: %s',
+                    ircutils.underline('Premiered'),
+                    ircutils.bold(show['premiered']))
 
             show_genre = format('%s: %s/%s',
                     ircutils.underline('Genre'),
