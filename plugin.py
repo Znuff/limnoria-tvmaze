@@ -6,7 +6,6 @@ import supybot.utils as utils
 from supybot.commands import *
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
-from urllib2 import urlopen, URLError, quote
 
 import json
 import datetime
@@ -16,17 +15,17 @@ from dateutil.parser import parse
 
 def fetch(show=False):
     if show:
-        query_string = '?q=' + quote(show) + '&embed[]=previousepisode&embed[]=nextepisode'
+        query_string = '?q=' + utils.web.urlquote(show) + '&embed[]=previousepisode&embed[]=nextepisode'
         url = 'http://api.tvmaze.com/singlesearch/shows' + query_string
     else:
         url = 'http://api.tvmaze.com/schedule?country=US'
 
     try:
         resp = utils.web.getUrl(url)
-    except utils.web.Error, e:
+    except utils.web.Error as e:
         return False
     
-    data = json.loads(resp)
+    data = json.loads(resp.decode('utf-8'))
 
     return data
 
