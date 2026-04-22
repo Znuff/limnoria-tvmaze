@@ -57,6 +57,24 @@ class EpisodeFormattingTestCase(unittest.TestCase):
         self.assertIn('2024-05-11 05:30 LOCAL', message)
         self.assertIn('in 6 hours', message)
 
+    def test_episode_output_uses_date_only_beyond_twenty_four_hours(self):
+        episode = {
+            'season': 2,
+            'number': 4,
+            'name': 'Next Week',
+            'airstamp': '2024-05-17T23:30:00-04:00',
+        }
+        local_tz = tzoffset('LOCAL', 2 * 60 * 60)
+        now = datetime.datetime(2024, 5, 10, 22, 0, tzinfo=datetime.timezone.utc)
+
+        with mock.patch.object(plugin_module, 'tzlocal', return_value=local_tz):
+            message = plugin_module._format_episode(
+                    'Next Episode', episode, 'green', now=now)
+
+        self.assertIn('2024-05-18', message)
+        self.assertNotIn('LOCAL', message)
+        self.assertIn('in 1 week', message)
+
     def test_schedule_output_includes_network_timezone(self):
         show = {
             'network': {

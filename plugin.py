@@ -29,11 +29,18 @@ def _parse_airstamp(airstamp):
     return airtime
 
 
-def _format_episode_airtime(airtime):
+def _format_episode_airtime(airtime, now=None):
     if airtime is None:
         return 'an unknown date'
 
-    return airtime.astimezone(tzlocal()).strftime('%Y-%m-%d %H:%M %Z')
+    if now is None:
+        now = datetime.datetime.now(tzlocal())
+
+    local_airtime = airtime.astimezone(tzlocal())
+    if abs(airtime - now) < datetime.timedelta(hours=24):
+        return local_airtime.strftime('%Y-%m-%d %H:%M %Z')
+
+    return local_airtime.strftime('%Y-%m-%d')
 
 
 def _format_relative_airtime(airtime, now=None):
@@ -59,7 +66,7 @@ def _format_episode(prefix, episode, color, now=None):
     episode_code = '%sx%s' % (episode.get('season', '?'), episode.get('number', '?'))
     episode_name = episode.get('name', 'Unknown')
     airtime = _parse_airstamp(episode.get('airstamp'))
-    display_time = _format_episode_airtime(airtime)
+    display_time = _format_episode_airtime(airtime, now=now)
     relative_time = _format_relative_airtime(airtime, now=now)
 
     return format('%s: [%s] %s on %s (%s).',

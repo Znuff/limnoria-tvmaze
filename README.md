@@ -6,10 +6,10 @@ It has only 2 commands, `tv` and `schedule`
 
 ```
 user: >tv quantico
-bot: Quantico 2015 (Running). Previous Episode: [1x1] Run on 2015-09-27 22:00 CEST (13 hours ago). Next Episode: [1x2] America on 2015-10-04 22:00 CEST (in 1 week). http://www.tvmaze.com/shows/2114/quantico
+bot: Quantico 2015 (Running). Previous Episode: [1x1] Run on 2015-09-27 22:00 CEST (13 hours ago). Next Episode: [1x2] America on 2015-10-04 (in 1 week). http://www.tvmaze.com/shows/2114/quantico
 ```
 
-Episode timestamps are rendered from TVMaze's `airstamp` value and shown in the bot's local timezone so date rollovers around midnight stay accurate.
+Episode timestamps are rendered from TVMaze's `airstamp` value and shown in the bot's local timezone. If an episode is within 24 hours of now, the output includes the local airtime; otherwise it only shows the local date.
 
 ```
 user: >schedule
