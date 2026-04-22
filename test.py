@@ -101,4 +101,33 @@ class EpisodeFormattingTestCase(unittest.TestCase):
         self.assertEqual(len(irc.replies), 1)
         self.assertIn('No show found named', irc.replies[0])
 
+    def test_schedule_defaults_to_us_country(self):
+        irc = FakeIrc()
+        unwrapped_schedule = plugin_module.tvmaze.schedule.__closure__[0].cell_contents
+
+        with mock.patch.object(plugin_module, 'fetch', return_value=[]) as mocked_fetch:
+            unwrapped_schedule(object(), irc, None, None, [])
+
+        mocked_fetch.assert_called_once_with(False, country='US')
+
+    def test_schedule_country_option_is_uppercased(self):
+        irc = FakeIrc()
+        unwrapped_schedule = plugin_module.tvmaze.schedule.__closure__[0].cell_contents
+
+        with mock.patch.object(plugin_module, 'fetch', return_value=[]) as mocked_fetch:
+            unwrapped_schedule(object(), irc, None, None, [('country', 'gb')])
+
+        mocked_fetch.assert_called_once_with(False, country='GB')
+
+    def test_schedule_country_option_rejects_invalid_codes(self):
+        irc = FakeIrc()
+        unwrapped_schedule = plugin_module.tvmaze.schedule.__closure__[0].cell_contents
+
+        with mock.patch.object(plugin_module, 'fetch') as mocked_fetch:
+            unwrapped_schedule(object(), irc, None, None, [('country', 'usa')])
+
+        mocked_fetch.assert_not_called()
+        self.assertEqual(len(irc.replies), 1)
+        self.assertIn('Invalid country code', irc.replies[0])
+
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:

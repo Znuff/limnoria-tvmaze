@@ -112,12 +112,12 @@ def _format_show_schedule(show):
 
     return format('%s on %s. %s', show_schedule, show_network, show_genre)
 
-def fetch(show=False):
+def fetch(show=False, country='US'):
     if show:
         query_string = '?q=' + utils.web.urlquote(show) + '&embed[]=previousepisode&embed[]=nextepisode'
         url = 'http://api.tvmaze.com/singlesearch/shows' + query_string
     else:
-        url = 'http://api.tvmaze.com/schedule?country=US'
+        url = 'http://api.tvmaze.com/schedule?country=' + utils.web.urlquote(country)
 
     try:
         resp = utils.web.getUrl(url)
@@ -191,11 +191,20 @@ class tvmaze(callbacks.Plugin):
         
     tv = wrap(tv, [getopts({'d': '', 'detail': ''}), 'text'])
 
-    def schedule(self, irc, msg, args):
-        """
+    def schedule(self, irc, msg, args, opts):
+        """[--country <ISO 3166-1 alpha-2 code>]
 
         """
-        shows = fetch(False)
+        country = 'US'
+        for (opt, arg) in opts:
+            if opt == 'country':
+                country = arg.upper()
+
+        if not re.match(r'^[A-Z]{2}$', country):
+            irc.reply('Invalid country code. Use a 2-letter ISO 3166-1 alpha-2 code, for example US or GB.')
+            return
+
+        shows = fetch(False, country=country)
         l = []
 
         if shows:
@@ -212,6 +221,8 @@ class tvmaze(callbacks.Plugin):
         irc.reply(format('%s: %s',
             ircutils.underline("Tonight's Shows"),
             tonight_shows))
+
+    schedule = wrap(schedule, [getopts({'country': 'somethingWithoutSpaces'})])
 
                 
 

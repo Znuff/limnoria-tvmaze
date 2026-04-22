@@ -18,4 +18,10 @@ user: >more
 bot: NCIS: Los Angeles [7x2] (21:59), Castle [8x2] (22:00), Blindspot [1x2] (22:00), Señora Acero [2x5] (22:00)
 ```
 
-The `schedule` command defaults to all US tvshows of the type "Scripted" (it will ignore Documentary, Reality etc. type of shows) 
+The `schedule` command defaults to all US tvshows of the type "Scripted" (it will ignore Documentary, Reality etc. type of shows).
+
+You can also pass a 2-letter ISO 3166-1 alpha-2 country code:
+
+```
+user: >schedule --country GB
+```
