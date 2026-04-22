@@ -13,6 +13,98 @@ from dateutil.tz import tzlocal
 from babel.dates import format_timedelta
 from dateutil.parser import parse
 
+
+def _parse_airstamp(airstamp):
+    if not airstamp:
+        return None
+
+    try:
+        airtime = parse(airstamp)
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+    if airtime.tzinfo is None:
+        return airtime.replace(tzinfo=tzlocal())
+
+    return airtime
+
+
+def _format_episode_airtime(airtime):
+    if airtime is None:
+        return 'an unknown date'
+
+    return airtime.astimezone(tzlocal()).strftime('%Y-%m-%d %H:%M %Z')
+
+
+def _format_relative_airtime(airtime, now=None):
+    if airtime is None:
+        return 'airtime unavailable'
+
+    if now is None:
+        now = datetime.datetime.now(tzlocal())
+
+    delta = airtime - now
+    relative_time = format_timedelta(abs(delta), granularity='minutes')
+
+    if delta.total_seconds() >= 0:
+        return 'in %s' % relative_time
+
+    return '%s ago' % relative_time
+
+
+def _format_episode(prefix, episode, color, now=None):
+    if not episode:
+        return ''
+
+    episode_code = '%sx%s' % (episode.get('season', '?'), episode.get('number', '?'))
+    episode_name = episode.get('name', 'Unknown')
+    airtime = _parse_airstamp(episode.get('airstamp'))
+    display_time = _format_episode_airtime(airtime)
+    relative_time = _format_relative_airtime(airtime, now=now)
+
+    return format('%s: [%s] %s on %s (%s).',
+            ircutils.underline(prefix),
+            ircutils.bold(episode_code),
+            ircutils.bold(episode_name),
+            ircutils.bold(display_time),
+            ircutils.mircColor(relative_time, color))
+
+
+def _format_show_schedule(show):
+    network = show.get('network') or {}
+    web_channel = show.get('webChannel') or {}
+    schedule = show.get('schedule') or {}
+    timezone = ((network.get('country') or {}).get('timezone') or
+                (web_channel.get('country') or {}).get('timezone'))
+
+    if network:
+        show_network = format('%s', ircutils.bold(network.get('name', 'Unknown network')))
+
+        days = ', '.join(schedule.get('days') or ['Unknown day'])
+        schedule_time = schedule.get('time') or 'Unknown time'
+        show_schedule = format('%s: %s @ %s',
+                ircutils.underline('Schedule'),
+                ircutils.bold(days),
+                ircutils.bold(schedule_time))
+        if timezone:
+            show_schedule = format('%s %s', show_schedule, ircutils.bold(timezone))
+    else:
+        show_network = format('%s',
+            ircutils.bold(web_channel.get('name', 'Unknown web channel')))
+
+        premiered = show.get('premiered') or 'Unknown'
+        show_schedule = format('%s: %s',
+                ircutils.underline('Premiered'),
+                ircutils.bold(premiered))
+
+    genres = '/'.join(show.get('genres') or ['Unknown'])
+    show_genre = format('%s: %s/%s',
+            ircutils.underline('Genre'),
+            ircutils.bold(show.get('type', 'Unknown')),
+            genres)
+
+    return format('%s on %s. %s', show_schedule, show_network, show_genre)
+
 def fetch(show=False):
     if show:
         query_string = '?q=' + utils.web.urlquote(show) + '&embed[]=previousepisode&embed[]=nextepisode'
@@ -49,44 +141,33 @@ class tvmaze(callbacks.Plugin):
         show = fetch(tvshow)
 
         if show:
-            if show['premiered']:
+            if show.get('premiered'):
                 premiered = show['premiered']
             else:
                 premiered = "SOON"
 
             show_state = format('%s %s (%s).',
-                    ircutils.bold(ircutils.underline(show['name'])),
-                    premiered[:4], show['status'])
-            
-            if ( '_embedded' in show and 'previousepisode' in show['_embedded']):
-                airtime = parse(show['_embedded']['previousepisode']['airstamp'])
-                timedelta = datetime.datetime.now(tzlocal()) - airtime
-                relative_time = format_timedelta(timedelta,
-                        granularity='minutes')
-                last_episode = format('%s: [%s] %s on %s (%s).',
-                        ircutils.underline('Previous Episode'),
-                        ircutils.bold(str(show['_embedded']['previousepisode']['season'])
-                            + 'x' +
-                            str(show['_embedded']['previousepisode']['number'])),
-                        ircutils.bold(show['_embedded']['previousepisode']['name']),
-                        ircutils.bold(show['_embedded']['previousepisode']['airdate']),
-                        ircutils.mircColor(relative_time, 'red'))
+                    ircutils.bold(ircutils.underline(show.get('name', tvshow))),
+                    premiered[:4], show.get('status', 'Unknown'))
+
+            embedded = show.get('_embedded') or {}
+            now = datetime.datetime.now(tzlocal())
+
+            if 'previousepisode' in embedded:
+                last_episode = _format_episode(
+                        'Previous Episode',
+                        embedded.get('previousepisode'),
+                        'red',
+                        now=now)
             else:
                 last_episode = ''
 
-            if ('_embedded' in show and 'nextepisode' in show['_embedded']):
-                airtime = parse(show['_embedded']['nextepisode']['airstamp'])
-                timedelta = datetime.datetime.now(tzlocal()) - airtime
-                relative_time = format_timedelta(timedelta, granularity='minutes')
-
-                next_episode = format('%s: [%s] %s on %s (%s).',
-                        ircutils.underline('Next Episode'),
-                        ircutils.bold(str(show['_embedded']['nextepisode']['season'])
-                            + 'x' +
-                            str(show['_embedded']['nextepisode']['number'])),
-                        ircutils.bold(show['_embedded']['nextepisode']['name']),
-                        ircutils.bold(show['_embedded']['nextepisode']['airdate']),
-                        ircutils.mircColor(relative_time, 'green'))
+            if 'nextepisode' in embedded:
+                next_episode = _format_episode(
+                        'Next Episode',
+                        embedded.get('nextepisode'),
+                        'green',
+                        now=now)
             else:
                 next_episode = format('%s: %s.',
                         ircutils.underline('Next Episode'),
@@ -96,32 +177,10 @@ class tvmaze(callbacks.Plugin):
             irc.reply(format('%s %s %s %s', show_state, last_episode, next_episode, show['url']))
         else:
             irc.reply(format('No show found named "%s"', ircutils.bold(tvshow)))
+            return
 
         if details:
-            if show['network']:
-                show_network = format('%s',
-                    ircutils.bold(show['network']['name']))
-
-                show_schedule = format('%s: %s @ %s',
-                    ircutils.underline('Schedule'),
-                    ircutils.bold(', '.join(show['schedule']['days'])),
-                    ircutils.bold(show['schedule']['time']))
-            else:
-                show_network = format('%s',
-                    ircutils.bold(show['webChannel']['name']))
-
-                show_schedule = format('%s: %s',
-                    ircutils.underline('Premiered'),
-                    ircutils.bold(show['premiered']))
-
-            show_genre = format('%s: %s/%s',
-                    ircutils.underline('Genre'),
-                    ircutils.bold(show['type']),
-                    '/'.join(show['genres']))
-
-
-            irc.reply(format('%s on %s. %s', show_schedule, show_network,
-                show_genre))
+            irc.reply(_format_show_schedule(show))
         
     tv = wrap(tv, [getopts({'d': '', 'detail': ''}), 'text'])
 

@@ -81,9 +81,21 @@ celerybeat-schedule
 # virtualenv
 venv/
 ENV/
+.venv
+
+# VS Code
+.vscode/
 
 # Spyder project settings
 .spyderproject
 
 # Rope project settings
 .ropeproject
+
+# Limnoria runtime state created when tests or the bot run from the repo root
+/backup/
+/conf/
+/data/
+/logs/
+/tmp/
+/web/
